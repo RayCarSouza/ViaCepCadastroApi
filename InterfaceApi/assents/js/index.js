@@ -1,28 +1,50 @@
 'use strict';
 
-function preencherFormulario(endereco) {
-    document.getElementById('endereco').value = endereco.logradouro;
-    document.getElementById('bairro').value = endereco.bairro;
-    document.getElementById('cidade').value = endereco.localidade;
-    document.getElementById('estado').value = endereco.uf;
-}
+    document.addEventListener('DOMContentLoaded', () => {
+        const cepInput = document.getElementById('cep');
+        const erroDiv = document.getElementById('erro');
 
-const cepValido = cep => cep.length === 8;
-
-const pesquisarCep = async () => {
-    const cep = document.getElementById('cep').value;
-    const url = `https://viacep.com.br/ws/${cep}/json/`;
-    
-    if (cepValido(cep)) {
-        const dados = await fetch(url);
-        const endereco = await dados.json();
-        
-        if (endereco.hasOwnProperty('erro')) {
-            document.getElementById('endereco').value = 'CEP não encontrado!';
-        } else {
-            preencherFormulario(endereco);
+        function mostrarErro(mensagem) {
+          erroDiv.textContent = mensagem;
+          erroDiv.classList.remove('d-none');
         }
-    } else {
-        document.getElementById('endereco').value = 'CEP incorreto!';
-    }
-};
+
+        function limparErro() {
+          erroDiv.textContent = '';
+          erroDiv.classList.add('d-none');
+        }
+
+    function buscarCep(cep) {
+        fetch(`https://viacep.com.br/ws/${cep}/json/`)
+            .then(response => response.json())
+            .then(data => {
+              if (!data.erro) {
+                document.getElementById('endereco').value = data.logradouro;
+                document.getElementById('bairro').value = data.bairro;
+                document.getElementById('cidade').value = data.localidade;
+                document.getElementById('estado').value = data.uf;
+                limparErro();
+              } else {
+                mostrarErro('CEP não encontrado.');
+              }
+            })
+            .catch(() => {
+              mostrarErro('Erro ao buscar o CEP.');
+            });
+        }
+
+    cepInput.addEventListener('input', () => {
+          const cep = cepInput.value.replace(/\D/g, '');
+          if (cep.length === 8) {
+            buscarCep(cep);
+          }
+        });
+
+    document.getElementById('formCadastro').addEventListener('submit', (e) => {
+          const cep = cepInput.value.replace(/\D/g, '');
+          if (cep.length !== 8) {
+            e.preventDefault();
+            mostrarErro('Informe um CEP válido antes de cadastrar.');
+          }
+        });
+});
